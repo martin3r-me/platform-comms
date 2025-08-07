@@ -1,0 +1,19 @@
+{
+  "name": "martin3r/platform-comms",
+  "description": "Plattform Comms Package",
+  "type": "library",
+  "autoload": {
+    "psr-4": {
+      "Platform\\Comms\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Platform\\Comms\\CommsServiceProvider"
+      ]
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
