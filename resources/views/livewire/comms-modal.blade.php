@@ -1,5 +1,5 @@
-<div>
-            <x-ui-modal size="xl" wire:model="modalShow">
+<x-ui-modal size="xl" wire:model="modalShow">
+    <div x-data="{ activeTab: 'threads' }">
         {{-- Modal-Header mit Tabs --}}
         <x-slot name="header">
             <div class="flex items-center justify-between w-full">
@@ -18,7 +18,7 @@
                 @foreach($tabs as $tab)
                     <button
                         type="button"
-                        wire:click="$set('activeTab', '{{ $tab['value'] }}')"
+                        @click="activeTab = '{{ $tab['value'] }}'"
                         class="px-3 py-2 text-sm font-medium rounded-t-lg transition-colors"
                         :class="{ 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : activeTab === '{{ $tab['value'] }}', 'text-gray-500 hover:text-gray-700' : activeTab !== '{{ $tab['value'] }}' }"
                     >
@@ -30,9 +30,10 @@
 
         {{-- Modal Body --}}
         <div class="h-full w-full flex gap-1 overflow-x-auto">
-            
-            {{-- Sidebar: Kanäle --}}
-            <div class="flex-shrink-0 h-full min-w-80 w-80 max-w-80 flex flex-col border-r border-gray-200">
+            {{-- Tab: Nachrichten --}}
+            <div x-show="activeTab === 'threads'" x-cloak class="h-full w-full flex gap-1 overflow-x-auto">
+                {{-- Sidebar: Kanäle --}}
+                <div class="flex-shrink-0 h-full min-w-80 w-80 max-w-80 flex flex-col border-r border-gray-200">
                 <div class="flex-1 overflow-y-auto p-4 max-h-full flex flex-col gap-2">
                     <h3 class="text-sm text-gray-600 font-semibold uppercase mb-2">Kanäle</h3>
 
@@ -77,6 +78,22 @@
                 @endif
             </div>
 
+                </div>
+            </div>
+
+            {{-- Tab: Aktionen --}}
+            <div x-show="activeTab === 'actions'" x-cloak class="h-full w-full flex items-center justify-center">
+                <div class="text-gray-500 text-sm italic p-8 text-center">
+                    Aktionen-Tab wird implementiert...
+                </div>
+            </div>
+
+            {{-- Tab: Assistant --}}
+            <div x-show="activeTab === 'assistant'" x-cloak class="h-full w-full flex items-center justify-center">
+                <div class="text-gray-500 text-sm italic p-8 text-center">
+                    Assistant-Tab wird implementiert...
+                </div>
+            </div>
         </div>
 
         {{-- Modal Footer --}}
@@ -100,6 +117,5 @@
                 </div>
             </div>
         </x-slot>
-    </x-ui-modal>
-
-</div>
+    </div>
+</x-ui-modal>
