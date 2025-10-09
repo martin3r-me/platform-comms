@@ -51,6 +51,8 @@
                                         wire:key="channel-item-{{ $groupKey }}-{{ $channel['id'] }}"
                                     />
                                 @endforeach
+                                
+
                             </x-ui-grouped-list>
                         @endforeach
                     </div>

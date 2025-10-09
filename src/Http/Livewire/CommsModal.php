@@ -78,6 +78,8 @@ class CommsModal extends Component
             ->groupBy('type')
             ->map(fn($group) => $group->values()->all())
             ->all();
+        
+
     }
 
     public function selectChannel(string $channelId): void
@@ -119,10 +121,27 @@ class CommsModal extends Component
         $this->loadChannels();
     }
 
+    #[On('open-modal-comms')]
+    public function openModalFromSidebar(): void
+    {
+        $this->openModal();
+    }
+
     public function closeModal(): void
     {
         $this->modalShow = false;
     }
+
+
+
+    #[On('comms-account-updated')]
+    public function refreshChannels(): void
+    {
+        // Channels neu laden wenn sich ein Account geändert hat
+        $this->loadChannels();
+    }
+
+
 
     public function render()
     {
