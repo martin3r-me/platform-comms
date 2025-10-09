@@ -1,5 +1,5 @@
-<x-ui-modal size="xl" wire:model="modalShow">
-    <div x-data="{ activeTab: 'threads' }">
+<div x-data="{ activeTab: 'threads' }">
+    <x-ui-modal size="xl" wire:model="modalShow">
         {{-- Modal-Header mit Tabs --}}
         <x-slot name="header">
             <div class="flex items-center justify-between w-full">
@@ -117,5 +117,5 @@
                 </div>
             </div>
         </x-slot>
-    </div>
-</x-ui-modal>
+    </x-ui-modal>
+</div>
