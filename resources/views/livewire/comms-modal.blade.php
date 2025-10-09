@@ -102,17 +102,4 @@
         </x-slot>
     </x-ui-modal>
 
-    {{-- Floating Action Button --}}
-    <div class="fixed bottom-6 right-6 z-50">
-        <x-ui-button 
-            wire:click="$set('modalShow', true)"
-            variant="primary"
-            size="lg"
-            iconOnly
-            rounded="full"
-            title="COMMS öffnen"
-        >            
-            @svg('heroicon-o-ellipsis-horizontal-circle', 'w-6 h-6')
-        </x-ui-button>
-    </div>
 </div>
