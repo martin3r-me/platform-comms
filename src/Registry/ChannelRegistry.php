@@ -5,6 +5,11 @@ namespace Platform\Comms\Registry;
 class ChannelRegistry
 {
     /**
+     * @var bool Merker, ob Registrare in diesem Request bereits ausgeführt wurden.
+     */
+    protected static bool $registrarsExecuted = false;
+
+    /**
      * @var array<string, array> Alle registrierten Channel-Instanzen (z. B. email:1)
      */
     protected static array $channels = [];
@@ -19,8 +24,12 @@ class ChannelRegistry
      */
     public static function register(array $channelConfig): void
     {
-        if (empty($channelConfig['id'])) {
-            throw new \InvalidArgumentException('Channel ID is required.');
+        $required = ['id', 'type', 'label', 'component'];
+
+        foreach ($required as $key) {
+            if (empty($channelConfig[$key]) || !is_string($channelConfig[$key])) {
+                throw new \InvalidArgumentException("Channel field '{$key}' is required and must be a non-empty string.");
+            }
         }
 
         static::$channels[$channelConfig['id']] = $channelConfig;
@@ -63,8 +72,15 @@ class ChannelRegistry
     /**
      * Führt alle bekannten Registrar-Klassen aus.
      */
-    public static function runRegistrars(): void
+    public static function runRegistrars(bool $force = false): void
     {
+        // Nur einmal pro Request/Job ausführen, außer force=true
+        if (static::$registrarsExecuted && !$force) {
+            return;
+        }
+
+        static::$registrarsExecuted = true;
+
         foreach (static::$registrars as $registrarClass) {
             if (method_exists($registrarClass, 'registerChannels')) {
                 $registrarClass::registerChannels();

@@ -37,6 +37,36 @@
                 <div class="flex-1 overflow-y-auto p-4 max-h-full flex flex-col gap-2">
                     <h3 class="text-sm text-gray-600 font-semibold uppercase mb-2">Kanäle</h3>
 
+                    {{-- Schnell-Anlage eines Channels --}}
+                    <div class="rounded-md border border-gray-200 p-3 mb-3">
+                        <div class="text-xs font-semibold text-gray-600 mb-2">Neuen Kanal anlegen</div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Typ</label>
+                                <select wire:model="newChannelType" class="flex-1 input">
+                                    <option value="email">E-Mail</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Adresse</label>
+                                <input type="text" wire:model.defer="newChannelAddress" class="flex-1 input" placeholder="z. B. support@example.com">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Name</label>
+                                <input type="text" wire:model.defer="newChannelName" class="flex-1 input" placeholder="Anzeigename (optional)">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" wire:model="newChannelDefault" id="newChannelDefault" class="input-checkbox">
+                                <label for="newChannelDefault" class="text-xs text-gray-500">Als Standard markieren</label>
+                            </div>
+                            <div class="flex justify-end">
+                                <x-ui-button size="xs" wire:click="createChannel">
+                                    Anlegen & aktivieren
+                                </x-ui-button>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="channel-groups">
                         @foreach ($channels as $type => $group)
                             @php
