@@ -111,7 +111,7 @@
             </div>
 
             {{-- Tab: Kanäle verwalten --}}
-            <div x-show="activeTab === 'channels'" x-cloak class="h-full w-full flex flex-col gap-4 p-4 overflow-y-auto">
+            <div x-show="activeTab === 'channels'" x-cloak class="h-full w-full flex flex-col gap-4 p-4">
                 {{-- Kopf --}}
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
@@ -133,29 +133,33 @@
                 </div>
 
                 {{-- Liste --}}
-                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    @foreach ($channels as $type => $group)
-                        @php
-                            $groupLabel = $group[0]['group'] ?? ucfirst($type);
-                        @endphp
-                        @foreach ($group as $channel)
-                            <div class="border border-gray-200 rounded-md p-3 flex flex-col gap-2">
-                                <div class="flex items-start justify-between">
-                                    <div>
-                                        <div class="text-sm font-semibold text-gray-900">{{ $channel['label'] ?? 'Kein Label' }}</div>
-                                        <div class="text-xs text-gray-500">{{ $channel['id'] }} · {{ $groupLabel }}</div>
+                <div class="flex-1 overflow-y-auto max-h-[70vh]">
+                    <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
+                        @forelse ($channels as $type => $group)
+                            @php
+                                $groupLabel = $group[0]['group'] ?? ucfirst($type);
+                            @endphp
+                            @foreach ($group as $channel)
+                                <div class="border border-gray-200 rounded-md p-3 flex flex-col gap-2">
+                                    <div class="flex items-start justify-between">
+                                        <div>
+                                            <div class="text-sm font-semibold text-gray-900">{{ $channel['label'] ?? 'Kein Label' }}</div>
+                                            <div class="text-xs text-gray-500">{{ $channel['id'] }} · {{ $groupLabel }}</div>
+                                        </div>
+                                        @if($activeChannelId === $channel['id'])
+                                            <x-ui-badge variant="primary" size="xs">Aktiv</x-ui-badge>
+                                        @endif
                                     </div>
-                                    @if($activeChannelId === $channel['id'])
-                                        <x-ui-badge variant="primary" size="xs">Aktiv</x-ui-badge>
-                                    @endif
+                                    <div class="flex gap-2">
+                                        <x-ui-button size="xs" variant="secondary-outline" wire:click="selectChannel('{{ $channel['id'] }}')">Aktivieren</x-ui-button>
+                                        <x-ui-button size="xs" variant="danger-outline" wire:click="deleteChannel('{{ $channel['id'] }}')">Löschen</x-ui-button>
+                                    </div>
                                 </div>
-                                <div class="flex gap-2">
-                                    <x-ui-button size="xs" variant="secondary-outline" wire:click="selectChannel('{{ $channel['id'] }}')">Aktivieren</x-ui-button>
-                                    <x-ui-button size="xs" variant="danger-outline" wire:click="deleteChannel('{{ $channel['id'] }}')">Löschen</x-ui-button>
-                                </div>
-                            </div>
-                        @endforeach
-                    @endforeach
+                            @endforeach
+                        @empty
+                            <div class="text-sm text-gray-500 italic">Keine Kanäle vorhanden.</div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
         </div>
