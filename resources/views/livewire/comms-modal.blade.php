@@ -10,9 +10,8 @@
             </div>
             <div class="flex gap-1 mt-4 border-b border-gray-200">
                 @php $tabs = [
-                    ['label' => 'Nachrichten', 'value' => 'threads'],
-                    ['label' => 'Aktionen', 'value' => 'actions'],
-                    ['label' => 'Assistant', 'value' => 'assistant'],
+                    ['label' => 'Kommunikation', 'value' => 'threads'],
+                    ['label' => 'Kanäle verwalten', 'value' => 'channels'],
                 ]; @endphp
 
                 @foreach($tabs as $tab)
@@ -111,17 +110,73 @@
                 </div>
             </div>
 
-            {{-- Tab: Aktionen --}}
-            <div x-show="activeTab === 'actions'" x-cloak class="h-full w-full flex items-center justify-center">
-                <div class="text-gray-500 text-sm italic p-8 text-center">
-                    Aktionen-Tab wird implementiert...
+            {{-- Tab: Kanäle verwalten --}}
+            <div x-show="activeTab === 'channels'" x-cloak class="h-full w-full flex gap-6 p-6 overflow-y-auto">
+                <div class="w-96 flex-shrink-0 space-y-4">
+                    {{-- Schnell-Anlage eines Channels (reuse) --}}
+                    <div class="rounded-md border border-gray-200 p-4">
+                        <div class="text-sm font-semibold text-gray-700 mb-3">Neuen Kanal anlegen</div>
+                        <div class="space-y-3">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Typ</label>
+                                <select wire:model="newChannelType" class="flex-1 input">
+                                    <option value="email">E-Mail</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Adresse</label>
+                                <input type="text" wire:model.defer="newChannelAddress" class="flex-1 input" placeholder="z. B. support@example.com">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs text-gray-500 w-20">Name</label>
+                                <input type="text" wire:model.defer="newChannelName" class="flex-1 input" placeholder="Anzeigename (optional)">
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" wire:model="newChannelDefault" id="newChannelDefaultChannelsTab" class="input-checkbox">
+                                <label for="newChannelDefaultChannelsTab" class="text-xs text-gray-500">Als Standard markieren</label>
+                            </div>
+                            <div class="flex justify-end">
+                                <x-ui-button size="xs" wire:click="createChannel">
+                                    Anlegen & aktivieren
+                                </x-ui-button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            {{-- Tab: Assistant --}}
-            <div x-show="activeTab === 'assistant'" x-cloak class="h-full w-full flex items-center justify-center">
-                <div class="text-gray-500 text-sm italic p-8 text-center">
-                    Assistant-Tab wird implementiert...
+                <div class="flex-1 space-y-4">
+                    <h3 class="text-sm text-gray-600 font-semibold uppercase">Verfügbare Kanäle</h3>
+                    <div class="grid md:grid-cols-2 gap-3">
+                        @foreach ($channels as $type => $group)
+                            @php
+                                $groupKey = \Illuminate\Support\Str::slug($type);
+                                $groupLabel = $group[0]['group'] ?? ucfirst($type);
+                            @endphp
+                            <div class="border border-gray-200 rounded-md">
+                                <div class="px-3 py-2 text-xs font-semibold text-gray-600 bg-gray-50 flex items-center justify-between">
+                                    <span>{{ $groupLabel }}</span>
+                                    <span class="text-gray-400">{{ count($group) }} </span>
+                                </div>
+                                <div class="divide-y divide-gray-100">
+                                    @foreach ($group as $channel)
+                                        <button type="button"
+                                            class="w-full text-left px-3 py-2 hover:bg-blue-50 transition"
+                                            wire:click="selectChannel('{{ $channel['id'] }}')">
+                                            <div class="flex items-center justify-between">
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-800">{{ $channel['label'] ?? 'Kein Label' }}</div>
+                                                    <div class="text-xs text-gray-500">{{ $channel['id'] }} · {{ $channel['type'] ?? '' }}</div>
+                                                </div>
+                                                @if($activeChannelId === $channel['id'])
+                                                    <x-ui-badge variant="primary" size="xs">Aktiv</x-ui-badge>
+                                                @endif
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
             </div>
         </div>
