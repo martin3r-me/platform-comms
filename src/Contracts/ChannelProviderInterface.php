@@ -19,5 +19,10 @@ interface ChannelProviderInterface
      * @param array $data Provider-spezifische Daten (z. B. address, team_id, user_id, name, meta).
      */
     public function createChannel(array $data): string;
+
+    /**
+     * Löscht einen Channel anhand seiner ID (z. B. "email:123").
+     */
+    public function deleteChannel(string $channelId): void;
 }
 

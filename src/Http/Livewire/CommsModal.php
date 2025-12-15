@@ -34,6 +34,9 @@ class CommsModal extends Component
     public ?string $newChannelName = null;
     public bool $newChannelDefault = false;
 
+    // Channel-Actions
+    public ?string $channelActionMessage = null;
+
     // Channels (gruppiert nach Typ)
     public array $channels = [];
 
@@ -210,6 +213,49 @@ class CommsModal extends Component
             $this->dispatch('notify', [
                 'type' => 'error',
                 'message' => 'Channel konnte nicht angelegt werden: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Löscht einen Channel über den Provider-Registry.
+     */
+    public function deleteChannel(string $channelId): void
+    {
+        [$type] = explode(':', $channelId) + [null];
+
+        if (!$type || !ChannelProviderRegistry::has($type)) {
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => "Kein Provider für Channel-ID {$channelId} registriert.",
+            ]);
+            return;
+        }
+
+        try {
+            ChannelProviderRegistry::delete($type, $channelId);
+            ChannelRegistry::runRegistrars(true);
+            $this->loadChannels();
+
+            if ($this->activeChannelId === $channelId) {
+                $this->activeChannelId = null;
+                $this->activeChannelComponent = null;
+                $this->activeChannelPayload = [];
+            }
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => 'Channel wurde gelöscht.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[Comms] Channel löschen fehlgeschlagen', [
+                'channelId' => $channelId,
+                'error' => $e->getMessage(),
+            ]);
+
+            $this->dispatch('notify', [
+                'type' => 'error',
+                'message' => 'Channel konnte nicht gelöscht werden: ' . $e->getMessage(),
             ]);
         }
     }

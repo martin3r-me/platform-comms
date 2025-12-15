@@ -55,5 +55,20 @@ class ChannelProviderRegistry
 
         return $provider->createChannel($data);
     }
+
+    /**
+     * Löscht einen Channel über den passenden Provider.
+     */
+    public static function delete(string $type, string $channelId): void
+    {
+        if (!isset(static::$providers[$type])) {
+            throw new \InvalidArgumentException("No provider registered for type '{$type}'.");
+        }
+
+        /** @var ChannelProviderInterface $provider */
+        $provider = app(static::$providers[$type]);
+
+        $provider->deleteChannel($channelId);
+    }
 }
 
