@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Platform\Comms\Services\CommsActivityService;
 use Platform\Comms\Registry\ContextPresenterRegistry;
+use Livewire\Attributes\On;
 
 class CommsModal extends Component
 {
@@ -228,6 +229,8 @@ class CommsModal extends Component
     #[On('open-modal-comms')]
     public function openModalFromSidebar(): void
     {
+        // Globaler Einstieg: immer Inbox zeigen
+        $this->activeTab = 'inbox';
         $this->openModal();
     }
 
@@ -283,7 +286,15 @@ class CommsModal extends Component
         }, $raw);
     }
 
-    public function openInboxContext(string $contextType, int $contextId): void
+    #[On('comms-indicator-refresh')]
+    public function refreshInboxAndBadges(): void
+    {
+        // Wird z.B. nach "mark seen" aus Channel-Komponenten ausgelöst
+        $this->loadInbox();
+        $this->loadChannels();
+    }
+
+    public function openInboxContext(string $contextType, int $contextId, ?string $channelId = null): void
     {
         $this->contextModel = $contextType;
         $this->contextModelId = $contextId;
@@ -300,10 +311,11 @@ class CommsModal extends Component
         // Capabilities heuristisch neu setzen (Ticket/Task vs Board/Project)
         $this->applyCapabilities(['capabilities' => null]);
 
-        $this->preferredChannelId = $this->loadBoundChannelForContext();
+        $this->preferredChannelId = $channelId ?: $this->loadBoundChannelForContext();
         $this->activeTab = $this->canUseThreads ? 'threads' : 'channels';
 
         $this->loadChannels();
+        $this->loadInbox();
         $this->maybeSelectPreferredChannel();
     }
 

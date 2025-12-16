@@ -3,6 +3,7 @@
 namespace Platform\Comms\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 use Platform\Comms\Services\CommsActivityService;
 
@@ -15,6 +16,7 @@ class CommsIndicator extends Component
         $this->refresh();
     }
 
+    #[On('comms-indicator-refresh')]
     public function refresh(): void
     {
         $user = Auth::user();

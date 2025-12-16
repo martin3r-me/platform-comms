@@ -61,7 +61,7 @@
                         @endphp
                         <button
                             type="button"
-                            wire:click="openInboxContext('{{ addslashes($type) }}', {{ $id }})"
+                            wire:click="openInboxContext('{{ addslashes($type) }}', {{ $id }}, '{{ $item['last_channel_id'] ?? '' }}')"
                             class="w-full text-left rounded-lg border border-gray-200 bg-white hover:bg-gray-50 px-4 py-3 flex items-center justify-between gap-3"
                         >
                             <div class="min-w-0">
