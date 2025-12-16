@@ -11,6 +11,7 @@
             <div class="flex gap-1 mt-4 border-b border-gray-200">
                 @php
                     $tabs = [];
+                    $tabs[] = ['label' => 'Inbox', 'value' => 'inbox'];
                     if ($canUseThreads) $tabs[] = ['label' => 'Kommunikation', 'value' => 'threads'];
                     if ($canManageChannels) $tabs[] = ['label' => 'Kanäle verwalten', 'value' => 'channels'];
                 @endphp
@@ -22,7 +23,14 @@
                         class="px-3 py-2 text-sm font-medium rounded-t-lg transition-colors"
                         :class="{ 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : activeTab === '{{ $tab['value'] }}', 'text-gray-500 hover:text-gray-700' : activeTab !== '{{ $tab['value'] }}' }"
                     >
-                        {{ $tab['label'] }}
+                        <span class="inline-flex items-center gap-2">
+                            {{ $tab['label'] }}
+                            @if($tab['value'] === 'inbox' && ($inboxUnreadCount ?? 0) > 0)
+                                <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-900 text-white text-[11px]">
+                                    {{ $inboxUnreadCount }}
+                                </span>
+                            @endif
+                        </span>
                     </button>
                 @endforeach
             </div>
@@ -30,6 +38,56 @@
 
         {{-- Modal Body --}}
         <div class="h-full w-full flex flex-col">
+            {{-- Tab: Inbox --}}
+            <div x-show="activeTab === 'inbox'" x-cloak class="h-full w-full p-4 overflow-y-auto">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Inbox</h3>
+                        <p class="text-sm text-gray-500">Kontexte mit neuen Nachrichten (über alle Channels).</p>
+                    </div>
+                    <x-ui-button size="sm" variant="secondary-outline" wire:click="loadInbox">Aktualisieren</x-ui-button>
+                </div>
+
+                <div class="space-y-2">
+                    @forelse($inboxItems as $item)
+                        @php
+                            $type = $item['context_type'];
+                            $id = $item['context_id'];
+                            $count = $item['unread_count'] ?? 0;
+                            $last = $item['last_occurred_at'] ?? null;
+                            $title = $item['title'] ?? (class_basename($type) . ' #' . $id);
+                            $subtitle = $item['subtitle'] ?? class_basename($type);
+                            $summary = $item['last_summary'] ?? null;
+                        @endphp
+                        <button
+                            type="button"
+                            wire:click="openInboxContext('{{ addslashes($type) }}', {{ $id }})"
+                            class="w-full text-left rounded-lg border border-gray-200 bg-white hover:bg-gray-50 px-4 py-3 flex items-center justify-between gap-3"
+                        >
+                            <div class="min-w-0">
+                                <div class="text-sm font-semibold text-gray-900 truncate">
+                                    {{ $title }}
+                                </div>
+                                <div class="text-xs text-gray-500 truncate">
+                                    {{ $subtitle }} · {{ $last ? \Carbon\Carbon::parse($last)->format('d.m.Y H:i') : '–' }}
+                                    @if($summary)
+                                        <span class="mx-1 text-gray-300">·</span>
+                                        {{ \Illuminate\Support\Str::limit($summary, 80) }}
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="shrink-0 inline-flex items-center justify-center min-w-7 h-7 px-2 rounded-full bg-gray-900 text-white text-xs font-semibold">
+                                {{ $count }}
+                            </div>
+                        </button>
+                    @empty
+                        <div class="text-sm text-gray-500 italic p-6 text-center border border-dashed border-gray-200 rounded-lg bg-gray-50">
+                            Keine neuen Nachrichten.
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
             {{-- Tab: Kommunikation --}}
             <div x-show="activeTab === 'threads'" x-cloak class="h-full w-full flex gap-1 overflow-x-auto" @if(!$canUseThreads) style="display:none" @endif>
                 {{-- Sidebar: Kanäle (nur Auswahl) --}}
@@ -54,7 +112,14 @@
                                             class="w-full text-left px-3 py-2 rounded-md border transition
                                             {{ $activeChannelId === $channel['id'] ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50' }}"
                                         >
-                                            <div class="text-sm font-medium truncate">{{ $channel['label'] ?? 'Kein Label' }}</div>
+                                            <div class="flex items-center justify-between gap-2">
+                                                <div class="text-sm font-medium truncate">{{ $channel['label'] ?? 'Kein Label' }}</div>
+                                                @if(($channel['unread_count'] ?? 0) > 0)
+                                                    <span class="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-gray-900 text-white text-[11px]">
+                                                        {{ $channel['unread_count'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <div class="text-xs text-gray-500 truncate">{{ $channel['id'] }}</div>
                                         </button>
                                     @endforeach

@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Platform\Comms\Services\CommsActivityService;
+use Platform\Comms\Registry\ContextPresenterRegistry;
 
 class CommsModal extends Component
 {
@@ -20,6 +22,10 @@ class CommsModal extends Component
     // Capabilities (generisch)
     public bool $canUseThreads = true;
     public bool $canManageChannels = true;
+
+    // Inbox / Unread
+    public array $inboxItems = [];
+    public int $inboxUnreadCount = 0;
 
     // Kontextinformationen
     public ?string $contextModel = null;
@@ -53,6 +59,7 @@ class CommsModal extends Component
     public function mount(): void
     {
         $this->loadChannels();
+        $this->loadInbox();
     }
 
     #[On('comms')]
@@ -66,6 +73,7 @@ class CommsModal extends Component
         $this->activeTab = $this->canUseThreads ? 'threads' : 'channels';
 
         $this->loadChannels();
+        $this->loadInbox();
         $this->maybeSelectPreferredChannel();
     }
 
@@ -143,7 +151,7 @@ class CommsModal extends Component
         $userId = $user?->id;
         $teamId = $user?->currentTeam?->id;
 
-        $this->channels = collect(ChannelRegistry::all())
+        $channels = collect(ChannelRegistry::all())
             ->filter(function ($c) use ($userId, $teamId) {
                 return ($c['team_id'] ?? null) === $teamId
                     && (!isset($c['user_id']) || $c['user_id'] === $userId);
@@ -151,6 +159,25 @@ class CommsModal extends Component
             ->groupBy('type')
             ->map(fn($group) => $group->values()->all())
             ->all();
+
+        // Unread-Badges pro Channel im aktuellen Kontext
+        if ($userId && $teamId && $this->contextModel && $this->contextModelId
+            && class_exists(CommsActivityService::class) && CommsActivityService::enabled()
+        ) {
+            foreach ($channels as $type => $group) {
+                foreach ($group as $idx => $channel) {
+                    $channels[$type][$idx]['unread_count'] = CommsActivityService::unreadCountForContext(
+                        userId: (int) $userId,
+                        channelId: (string) $channel['id'],
+                        contextType: (string) $this->contextModel,
+                        contextId: (int) $this->contextModelId,
+                        teamId: (int) $teamId
+                    );
+                }
+            }
+        }
+
+        $this->channels = $channels;
         
         $this->maybeSelectPreferredChannel();
     }
@@ -195,6 +222,7 @@ class CommsModal extends Component
     {
         $this->modalShow = true;
         $this->loadChannels();
+        $this->loadInbox();
     }
 
     #[On('open-modal-comms')]
@@ -215,6 +243,68 @@ class CommsModal extends Component
     {
         // Channels neu laden wenn sich ein Account geändert hat
         $this->loadChannels();
+        $this->loadInbox();
+    }
+
+    public function loadInbox(): void
+    {
+        $user = Auth::user();
+        $teamId = $user?->currentTeam?->id;
+        $userId = $user?->id;
+
+        if (!$userId || !class_exists(CommsActivityService::class) || !CommsActivityService::enabled()) {
+            $this->inboxItems = [];
+            $this->inboxUnreadCount = 0;
+            return;
+        }
+
+        $raw = CommsActivityService::unreadContexts((int) $userId, $teamId, 50);
+        $this->inboxUnreadCount = array_sum(array_map(fn ($i) => (int) ($i['unread_count'] ?? 0), $raw));
+
+        // Presenter: sprechende Titel + URL + Preview
+        $this->inboxItems = array_map(function ($i) use ($teamId) {
+            $type = (string) $i['context_type'];
+            $id = (int) $i['context_id'];
+
+            $presented = class_exists(ContextPresenterRegistry::class)
+                ? ContextPresenterRegistry::present($type, $id)
+                : null;
+
+            $last = CommsActivityService::lastInboundForContext($type, $id, $teamId);
+
+            return [
+                ...$i,
+                'title' => $presented['title'] ?? (class_basename($type) . ' #' . $id),
+                'subtitle' => $presented['subtitle'] ?? class_basename($type),
+                'url' => $presented['url'] ?? null,
+                'last_summary' => $last['summary'] ?? null,
+                'last_channel_id' => $last['channel_id'] ?? null,
+            ];
+        }, $raw);
+    }
+
+    public function openInboxContext(string $contextType, int $contextId): void
+    {
+        $this->contextModel = $contextType;
+        $this->contextModelId = $contextId;
+
+        // Subject/URL für bessere UX (falls Presenter vorhanden)
+        if (class_exists(ContextPresenterRegistry::class)) {
+            $p = ContextPresenterRegistry::present($contextType, $contextId);
+            if ($p) {
+                $this->contextSubject = $p['title'] ?? $this->contextSubject;
+                $this->contextUrl = $p['url'] ?? $this->contextUrl;
+            }
+        }
+
+        // Capabilities heuristisch neu setzen (Ticket/Task vs Board/Project)
+        $this->applyCapabilities(['capabilities' => null]);
+
+        $this->preferredChannelId = $this->loadBoundChannelForContext();
+        $this->activeTab = $this->canUseThreads ? 'threads' : 'channels';
+
+        $this->loadChannels();
+        $this->maybeSelectPreferredChannel();
     }
 
     /**
