@@ -171,6 +171,9 @@ class CommsModal extends Component
         // Kontext in Payload injizieren
         $payload = $config['payload'] ?? [];
 
+        // UI-Mode: Ticket/Task → Comms (Threads), Board/Project → Admin (Manage)
+        $payload['ui_mode'] = $this->canUseThreads ? 'comms' : 'admin';
+
         $payload['context'] = [
             'model'       => $this->contextModel,
             'modelId'     => $this->contextModelId,
