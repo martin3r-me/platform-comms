@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Platform\Comms\Services\CommsActivityService;
 use Platform\Comms\Registry\ContextPresenterRegistry;
-use Livewire\Attributes\On;
 
 class CommsModal extends Component
 {
