@@ -23,6 +23,10 @@ class CommsModal extends Component
     public bool $canUseThreads = true;
     public bool $canManageChannels = true;
 
+    // Wenn true, wird beim Öffnen eines Kontextes (z.B. via Inbox-Klick) in den Channel-Payload gegeben,
+    // damit der Channel beim Auto-Open den Kontext als "gelesen" markieren kann.
+    public bool $markSeenOnOpen = false;
+
     // Inbox / Unread
     public array $inboxItems = [];
     public int $inboxUnreadCount = 0;
@@ -210,12 +214,16 @@ class CommsModal extends Component
             'source'      => $this->contextSource,
             'recipients'  => $this->recipients,
             'meta'        => $this->contextMeta,
+            'mark_seen_on_open' => $this->markSeenOnOpen,
         ];
 
         // Aktiven Channel setzen
         $this->activeChannelId        = $channelId;
         $this->activeChannelComponent = $config['component'] ?? null;
         $this->activeChannelPayload   = $payload;
+
+        // Nur einmal anwenden (z.B. Inbox-Klick) – danach zurücksetzen
+        $this->markSeenOnOpen = false;
     }
 
     public function openModal(): void
@@ -297,6 +305,7 @@ class CommsModal extends Component
     {
         $this->contextModel = $contextType;
         $this->contextModelId = $contextId;
+        $this->markSeenOnOpen = true;
 
         // Subject/URL für bessere UX (falls Presenter vorhanden)
         if (class_exists(ContextPresenterRegistry::class)) {
