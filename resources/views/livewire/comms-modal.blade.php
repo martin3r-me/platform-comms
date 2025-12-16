@@ -1,4 +1,4 @@
-<div x-data="{ activeTab: 'threads' }">
+<div x-data="{ activeTab: @entangle('activeTab') }">
     <x-ui-modal size="xl" wire:model="modalShow">
         {{-- Modal-Header mit Tabs --}}
         <x-slot name="header">
@@ -9,10 +9,11 @@
                 </div>
             </div>
             <div class="flex gap-1 mt-4 border-b border-gray-200">
-                @php $tabs = [
-                    ['label' => 'Kommunikation', 'value' => 'threads'],
-                    ['label' => 'Kanäle verwalten', 'value' => 'channels'],
-                ]; @endphp
+                @php
+                    $tabs = [];
+                    if ($canUseThreads) $tabs[] = ['label' => 'Kommunikation', 'value' => 'threads'];
+                    if ($canManageChannels) $tabs[] = ['label' => 'Kanäle verwalten', 'value' => 'channels'];
+                @endphp
 
                 @foreach($tabs as $tab)
                     <button
@@ -30,7 +31,7 @@
         {{-- Modal Body --}}
         <div class="h-full w-full flex flex-col">
             {{-- Tab: Kommunikation --}}
-            <div x-show="activeTab === 'threads'" x-cloak class="h-full w-full flex gap-1 overflow-x-auto">
+            <div x-show="activeTab === 'threads'" x-cloak class="h-full w-full flex gap-1 overflow-x-auto" @if(!$canUseThreads) style="display:none" @endif>
                 {{-- Sidebar: Kanäle (nur Auswahl) --}}
                 <div class="flex-shrink-0 h-full min-w-72 w-72 max-w-72 flex flex-col border-r border-gray-200 bg-white">
                     <div class="px-4 py-3 border-b border-gray-200">
@@ -76,7 +77,7 @@
             </div>
 
             {{-- Tab: Kanäle verwalten --}}
-            <div x-show="activeTab === 'channels'" x-cloak class="h-full w-full flex flex-col gap-4 p-4">
+            <div x-show="activeTab === 'channels'" x-cloak class="h-full w-full flex flex-col gap-4 p-4" @if(!$canManageChannels) style="display:none" @endif>
                 {{-- Kopf --}}
                 <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>

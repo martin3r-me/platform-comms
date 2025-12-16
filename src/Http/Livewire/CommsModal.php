@@ -7,6 +7,8 @@ use Livewire\Attributes\On;
 use Platform\Comms\Registry\ChannelRegistry;
 use Platform\Comms\Registry\ChannelProviderRegistry;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 
 class CommsModal extends Component
@@ -14,6 +16,10 @@ class CommsModal extends Component
     // Steuerung des Modals
     public bool $modalShow = false;
     public string $activeTab = 'threads';
+
+    // Capabilities (generisch)
+    public bool $canUseThreads = true;
+    public bool $canManageChannels = true;
 
     // Kontextinformationen
     public ?string $contextModel = null;
@@ -53,7 +59,12 @@ class CommsModal extends Component
     public function prepareCommsContext(array $payload = []): void
     {
         $this->applyPayload($payload);
-        $this->preferredChannelId = $payload['preferred_channel_id'] ?? null;
+        $this->applyCapabilities($payload);
+        $this->preferredChannelId = $payload['preferred_channel_id'] ?? $this->loadBoundChannelForContext();
+
+        // Default-Tab je nach Capabilities
+        $this->activeTab = $this->canUseThreads ? 'threads' : 'channels';
+
         $this->loadChannels();
         $this->maybeSelectPreferredChannel();
     }
@@ -71,6 +82,51 @@ class CommsModal extends Component
         $this->contextSource       = $payload['source']       ?? null;
         $this->recipients          = $payload['recipients']   ?? [];
         $this->contextMeta         = $payload['meta']         ?? [];
+    }
+
+    protected function applyCapabilities(array $payload): void
+    {
+        $caps = $payload['capabilities'] ?? null;
+
+        if (is_array($caps)) {
+            $this->canManageChannels = (bool) ($caps['manage_channels'] ?? false);
+            $this->canUseThreads = (bool) ($caps['threads'] ?? false);
+            return;
+        }
+
+        // Fallback-Heuristik (generisch): Board/Project → manage, Ticket/Task → threads, sonst beides.
+        $type = $this->contextModel ? class_basename($this->contextModel) : '';
+
+        if (str_contains($type, 'Board') || str_contains($type, 'Project')) {
+            $this->canManageChannels = true;
+            $this->canUseThreads = false;
+            return;
+        }
+
+        if (str_contains($type, 'Ticket') || str_contains($type, 'Task')) {
+            $this->canManageChannels = false;
+            $this->canUseThreads = true;
+            return;
+        }
+
+        $this->canManageChannels = true;
+        $this->canUseThreads = true;
+    }
+
+    protected function loadBoundChannelForContext(): ?string
+    {
+        if (!$this->contextModel || !$this->contextModelId) {
+            return null;
+        }
+
+        if (!Schema::hasTable('comms_context_channels')) {
+            return null;
+        }
+
+        return DB::table('comms_context_channels')
+            ->where('context_type', $this->contextModel)
+            ->where('context_id', $this->contextModelId)
+            ->value('channel_id');
     }
 
     /**
@@ -269,22 +325,29 @@ class CommsModal extends Component
             return;
         }
 
-        // Board
-        if ($this->contextModel === 'Platform\Helpdesk\Models\HelpdeskBoard' && class_exists($this->contextModel)) {
-            $board = $this->contextModel::find($this->contextModelId);
-            if ($board && $board->comms_channel_id !== $channelId) {
-                $board->comms_channel_id = $channelId;
-                $board->save();
-            }
-            return;
+        // 1) Generisch: Binding-Tabelle
+        if (Schema::hasTable('comms_context_channels')) {
+            DB::table('comms_context_channels')->updateOrInsert(
+                ['context_type' => $this->contextModel, 'context_id' => $this->contextModelId],
+                [
+                    'channel_id' => $channelId,
+                    'team_id' => Auth::user()?->currentTeam?->id,
+                    'created_by_user_id' => Auth::id(),
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
         }
 
-        // Ticket
-        if ($this->contextModel === 'Platform\Helpdesk\Models\HelpdeskTicket' && class_exists($this->contextModel)) {
-            $ticket = $this->contextModel::find($this->contextModelId);
-            if ($ticket && $ticket->comms_channel_id !== $channelId) {
-                $ticket->comms_channel_id = $channelId;
-                $ticket->save();
+        // 2) Backwards-Compat: falls das Context-Model ein comms_channel_id Feld hat (Helpdesk aktuell)
+        if (class_exists($this->contextModel)) {
+            $model = $this->contextModel::find($this->contextModelId);
+            if ($model) {
+                $table = $model->getTable();
+                if (Schema::hasColumn($table, 'comms_channel_id')) {
+                    $model->setAttribute('comms_channel_id', $channelId);
+                    $model->save();
+                }
             }
         }
     }
