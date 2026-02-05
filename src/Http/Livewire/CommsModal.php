@@ -353,7 +353,6 @@ class CommsModal extends Component
                 'email'      => $this->newChannelAddress, // Fallback für Provider
                 'name'       => $this->newChannelName,
                 'team_id'    => Auth::user()?->currentTeam?->id,
-                'user_id'    => Auth::id(),
                 'is_default' => $this->newChannelDefault,
             ]);
 
